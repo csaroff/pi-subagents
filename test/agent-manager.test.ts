@@ -9,6 +9,7 @@ vi.mock("../src/agent-runner.js", () => ({
 }));
 
 vi.mock("../src/worktree.js", () => ({
+  DEFAULT_WORKTREE_BRANCH_PREFIX: "pi-agent",
   createWorktree: vi.fn(),
   cleanupWorktree: vi.fn(() => ({ hasChanges: false })),
   pruneWorktrees: vi.fn(),
@@ -675,6 +676,24 @@ describe("AgentManager — isolation: worktree fails loud, no silent fallback", 
     manager?.dispose();
   });
 
+  it("passes the configured branch prefix to every isolated worktree", async () => {
+    const { createWorktree } = await import("../src/worktree.js");
+    vi.mocked(createWorktree).mockReturnValueOnce({
+      path: "/wt/copy", branch: "automation-agent", baseSha: "abc", workPath: "/wt/copy",
+    });
+    resolvedRun();
+
+    manager = new AgentManager();
+    manager.setWorktreeBranchPrefix("automation");
+    const id = manager.spawn(mockPi, mockCtx, "general-purpose", "test", {
+      description: "test",
+      isolation: "worktree",
+    });
+    await manager.getRecord(id)!.promise;
+
+    expect(createWorktree).toHaveBeenLastCalledWith("/tmp", id, "automation");
+  });
+
   it("spawn() throws when createWorktree returns undefined; no orphan record left behind", async () => {
     const { createWorktree } = await import("../src/worktree.js");
     vi.mocked(createWorktree).mockReturnValueOnce(undefined);
@@ -758,7 +777,7 @@ describe("AgentManager — SpawnOptions.cwd passthrough (#96)", () => {
     });
     await manager.getRecord(id)!.promise;
 
-    expect(createWorktree).toHaveBeenCalledWith("/", id);
+    expect(createWorktree).toHaveBeenCalledWith("/", id, "pi-agent");
     // Worktree wins for the working dir — at workPath, so subdirectory scoping
     // survives isolation. Config still anchored to the parent.
     expect(runAgent).toHaveBeenCalledWith(

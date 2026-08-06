@@ -7,6 +7,7 @@ import { dirname, join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import { NO_FALLBACK } from "./agent-types.js";
 import type { JoinMode, WidgetMode } from "./types.js";
+import { isValidWorktreeBranchPrefix } from "./worktree.js";
 
 export interface SubagentsSettings {
   maxConcurrent?: number;
@@ -103,6 +104,11 @@ export interface SubagentsSettings {
    */
   maxSubagentDepth?: number;
   /**
+   * Prefix for branches preserving changes from `isolation: "worktree"` runs.
+   * Defaults to `"pi-agent"`; the agent id is appended as `-<agentId>`.
+   */
+  worktreeBranchPrefix?: string;
+  /**
    * Agent type substituted when a caller-supplied `subagent_type` doesn't
    * resolve to exactly one enabled agent (unknown, disabled, or ambiguous by
    * case). Omitted keeps the historical `general-purpose` fallback; a type name
@@ -135,6 +141,7 @@ export interface SettingsAppliers {
   setWidgetMode: (mode: WidgetMode) => void;
   setOutputTranscript: (b: boolean) => void;
   setMaxSubagentDepth: (n: number) => void;
+  setWorktreeBranchPrefix: (prefix: string) => void;
   setFallbackSubagent: (v: string | undefined) => void;
 }
 
@@ -210,6 +217,10 @@ function sanitize(raw: unknown): SubagentsSettings {
   if (typeof r.outputTranscript === "boolean") {
     out.outputTranscript = r.outputTranscript;
   }
+  if (typeof r.worktreeBranchPrefix === "string") {
+    const prefix = r.worktreeBranchPrefix.trim();
+    if (isValidWorktreeBranchPrefix(prefix)) out.worktreeBranchPrefix = prefix;
+  }
   if (r.fallbackSubagent === false) {
     // The only non-string spelling worth accepting: a boolean would otherwise be
     // dropped, silently leaving the PERMISSIVE default in place. Every string is
@@ -274,6 +285,7 @@ export function applySettings(s: SubagentsSettings, appliers: SettingsAppliers):
   if (typeof s.defaultMaxTurns === "number") appliers.setDefaultMaxTurns(s.defaultMaxTurns);
   if (typeof s.graceTurns === "number") appliers.setGraceTurns(s.graceTurns);
   if (typeof s.maxSubagentDepth === "number") appliers.setMaxSubagentDepth(s.maxSubagentDepth);
+  if (typeof s.worktreeBranchPrefix === "string") appliers.setWorktreeBranchPrefix(s.worktreeBranchPrefix);
   if (typeof s.fallbackSubagent === "string") appliers.setFallbackSubagent(s.fallbackSubagent);
   if (s.defaultJoinMode) appliers.setDefaultJoinMode(s.defaultJoinMode);
   if (typeof s.schedulingEnabled === "boolean") appliers.setSchedulingEnabled(s.schedulingEnabled);

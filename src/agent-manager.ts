@@ -15,7 +15,7 @@ import type { AgentSession, ExtensionAPI, ExtensionContext } from "@earendil-wor
 import { resumeAgent, runAgent, type ToolActivity } from "./agent-runner.js";
 import type { AgentInvocation, AgentRecord, IsolationMode, SubagentType, ThinkingLevel } from "./types.js";
 import { addUsage } from "./usage.js";
-import { cleanupWorktree, createWorktree, pruneWorktrees, } from "./worktree.js";
+import { cleanupWorktree, createWorktree, DEFAULT_WORKTREE_BRANCH_PREFIX, pruneWorktrees } from "./worktree.js";
 
 export type OnAgentComplete = (record: AgentRecord) => void;
 export type OnAgentStart = (record: AgentRecord) => void;
@@ -128,6 +128,7 @@ export class AgentManager {
   private onStart?: OnAgentStart;
   private onCompact?: OnAgentCompact;
   private maxConcurrent: number;
+  private worktreeBranchPrefix = DEFAULT_WORKTREE_BRANCH_PREFIX;
   /** Base repos worktrees were created from — so dispose() can prune them all,
    *  not just the parent repo (caller-supplied cwd can target other repos). */
   private worktreeRepos = new Set<string>();
@@ -161,6 +162,14 @@ export class AgentManager {
 
   getMaxConcurrent(): number {
     return this.maxConcurrent;
+  }
+
+  setWorktreeBranchPrefix(prefix: string): void {
+    this.worktreeBranchPrefix = prefix;
+  }
+
+  getWorktreeBranchPrefix(): string {
+    return this.worktreeBranchPrefix;
   }
 
   /**
@@ -240,7 +249,7 @@ export class AgentManager {
     // BEFORE state mutation so a throw doesn't leave the record half-running.
     let worktreeCwd: string | undefined;
     if (options.isolation === "worktree") {
-      const wt = createWorktree(baseCwd, id);
+      const wt = createWorktree(baseCwd, id, this.worktreeBranchPrefix);
       if (!wt) {
         throw new Error(
           'Cannot run with isolation: "worktree" — not a git repo, no commits yet, or `git worktree add` failed. ' +

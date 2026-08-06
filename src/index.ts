@@ -53,6 +53,7 @@ import {
 import { FleetList, type FleetUICtx } from "./ui/fleet-list.js";
 import { showSchedulesMenu } from "./ui/schedule-menu.js";
 import { addUsage, getLifetimeTotal, getSessionContextPercent, type LifetimeUsage } from "./usage.js";
+import { isValidWorktreeBranchPrefix } from "./worktree.js";
 
 // ---- Shared helpers ----
 
@@ -761,6 +762,7 @@ export default function (pi: ExtensionAPI) {
       setWidgetMode: setWidgetMode,
       setOutputTranscript: setOutputTranscriptDefault,
       setMaxSubagentDepth: setMaxSubagentDepth,
+      setWorktreeBranchPrefix: (prefix) => manager.setWorktreeBranchPrefix(prefix),
       setFallbackSubagent: setFallbackSubagent,
     },
     (event, payload) => pi.events.emit(event, payload),
@@ -2147,6 +2149,7 @@ ${systemPrompt}
       widgetMode: getWidgetMode(),
       outputTranscript: getOutputTranscriptDefault(),
       maxSubagentDepth: getMaxSubagentDepth(),
+      worktreeBranchPrefix: manager.getWorktreeBranchPrefix(),
       // Deliberately NOT `?? "general-purpose"`: every settings change writes the
       // whole snapshot, and materializing the implicit default would turn it into
       // explicit configuration — which then fails loudly if general-purpose later
@@ -2199,6 +2202,13 @@ ${systemPrompt}
           description: "Hard cap on nested delegation — main is 0, its subagents 1 (0/1 = nesting off, Enter to type)",
           currentValue: String(msd),
           values: [String(msd)],
+        },
+        {
+          id: "worktreeBranchPrefix",
+          label: "Worktree branch prefix",
+          description: "Prefix for branches preserving isolated work (Enter to type)",
+          currentValue: manager.getWorktreeBranchPrefix(),
+          values: [manager.getWorktreeBranchPrefix()],
         },
         {
           id: "joinMode",
@@ -2299,6 +2309,11 @@ ${systemPrompt}
               : `Nested depth set to ${n}. Applies to agents started from now on.`,
           );
         }
+      } else if (id === "worktreeBranchPrefix") {
+        if (isValidWorktreeBranchPrefix(value)) {
+          manager.setWorktreeBranchPrefix(value);
+          notifyApplied(ctx, `Worktree branch prefix set to ${value}`);
+        }
       } else if (id === "joinMode") {
         setDefaultJoinMode(value as JoinMode);
         notifyApplied(ctx, `Default join mode set to ${value}`);
@@ -2381,8 +2396,11 @@ ${systemPrompt}
             currentIndex = Math.min(items.length - 1, currentIndex + 1);
           }
 
-          // Enter on numeric field → close and prompt for typed input
-          if (matchesKey(data, Key.enter) && NUMERIC_IDS.has(items[currentIndex].id)) {
+          // Enter on typed field → close and prompt for input
+          if (
+            matchesKey(data, Key.enter) &&
+            (NUMERIC_IDS.has(items[currentIndex].id) || items[currentIndex].id === "worktreeBranchPrefix")
+          ) {
             done(items[currentIndex].id);
             return;
           }
@@ -2390,6 +2408,19 @@ ${systemPrompt}
         },
       };
     });
+
+    if (result === "worktreeBranchPrefix") {
+      let input: string | undefined = await ctx.ui.input("Worktree branch prefix", manager.getWorktreeBranchPrefix());
+      while (input != null) {
+        const trimmed = input.trim();
+        if (isValidWorktreeBranchPrefix(trimmed)) {
+          applyValue(result, trimmed);
+          await showSettings(ctx);
+          return;
+        }
+        input = await ctx.ui.input("Worktree branch prefix (letters, numbers, ., _, -)", trimmed);
+      }
+    }
 
     // If a numeric field ID was returned, prompt for typed input
     if (result && NUMERIC_IDS.has(result)) {

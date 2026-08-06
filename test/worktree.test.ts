@@ -49,6 +49,15 @@ describe("worktree", () => {
       try { execFileSync("git", ["worktree", "remove", "--force", wt!.path], { cwd: repoDir, stdio: "pipe" }); } catch { /* ignore */ }
     });
 
+    it("uses the configured branch prefix so isolated work can follow repository naming policy", () => {
+      const wt = createWorktree(repoDir, "custom-prefix", "automation");
+      expect(wt?.branch).toBe("automation-custom-prefix");
+
+      // The prefix controls the preserved branch only; temp paths remain recognizable and disposable.
+      expect(wt?.path).toContain("pi-agent-custom-prefix-");
+      try { execFileSync("git", ["worktree", "remove", "--force", wt!.path], { cwd: repoDir, stdio: "pipe" }); } catch { /* ignore */ }
+    });
+
     it("returns undefined for non-git directory", () => {
       const nonGit = mkdtempSync(join(tmpdir(), "pi-wt-nongit-"));
       try {

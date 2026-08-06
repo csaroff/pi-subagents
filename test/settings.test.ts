@@ -90,6 +90,7 @@ describe("settings persistence", () => {
       defaultJoinMode: "smart" as const,
       schedulingEnabled: false,
       toolDescriptionMode: "compact" as const,
+      worktreeBranchPrefix: "automation",
     };
     saveSettings(settings, projectDir);
     expect(loadSettings(projectDir)).toEqual(settings);
@@ -220,6 +221,16 @@ describe("settings persistence", () => {
       expect(loadSettings(projectDir)).toEqual({});
       writeProject({ maxSubagentDepth: 17 });
       expect(loadSettings(projectDir)).toEqual({});
+    });
+
+    it("keeps a safe worktree branch prefix and drops invalid Git ref fragments", () => {
+      writeProject({ worktreeBranchPrefix: "  automation.agents_1  " });
+      expect(loadSettings(projectDir)).toEqual({ worktreeBranchPrefix: "automation.agents_1" });
+
+      for (const invalid of ["", "-leading-dash", "feature/agents", "agents..work", "a".repeat(101)]) {
+        writeProject({ worktreeBranchPrefix: invalid });
+        expect(loadSettings(projectDir)).toEqual({});
+      }
     });
 
     it("accepts `none` and `false` as the disabled fallback, nothing else", () => {
@@ -419,6 +430,7 @@ describe("settings persistence", () => {
         setWidgetMode: vi.fn(),
         setOutputTranscript: vi.fn(),
         setMaxSubagentDepth: vi.fn(),
+        setWorktreeBranchPrefix: vi.fn(),
         setFallbackSubagent: vi.fn(),
       };
     });
@@ -443,10 +455,11 @@ describe("settings persistence", () => {
     });
 
     it("applies only the fields that are present", () => {
-      applySettings({ maxConcurrent: 4, graceTurns: 3, maxSubagentDepth: 1 }, appliers);
+      applySettings({ maxConcurrent: 4, graceTurns: 3, maxSubagentDepth: 1, worktreeBranchPrefix: "automation" }, appliers);
       expect(appliers.setMaxConcurrent).toHaveBeenCalledWith(4);
       expect(appliers.setGraceTurns).toHaveBeenCalledWith(3);
       expect(appliers.setMaxSubagentDepth).toHaveBeenCalledWith(1);
+      expect(appliers.setWorktreeBranchPrefix).toHaveBeenCalledWith("automation");
       expect(appliers.setDefaultMaxTurns).not.toHaveBeenCalled();
       expect(appliers.setDefaultJoinMode).not.toHaveBeenCalled();
       expect(appliers.setSchedulingEnabled).not.toHaveBeenCalled();
@@ -577,6 +590,7 @@ describe("settings persistence", () => {
         setWidgetMode: vi.fn(),
         setOutputTranscript: vi.fn(),
         setMaxSubagentDepth: vi.fn(),
+        setWorktreeBranchPrefix: vi.fn(),
         setFallbackSubagent: vi.fn(),
       };
     });

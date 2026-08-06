@@ -12,6 +12,13 @@ import { existsSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 
+export const DEFAULT_WORKTREE_BRANCH_PREFIX = "pi-agent";
+
+/** Keep generated branch names portable across Git hosts and filesystems. */
+export function isValidWorktreeBranchPrefix(prefix: string): boolean {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/.test(prefix) && !prefix.includes("..");
+}
+
 export interface WorktreeInfo {
   /** Absolute path to the worktree directory (the copied repo's root). */
   path: string;
@@ -41,7 +48,11 @@ export interface WorktreeCleanupResult {
  * Create a temporary git worktree for an agent.
  * Returns the worktree path, or undefined if not in a git repo.
  */
-export function createWorktree(cwd: string, agentId: string): WorktreeInfo | undefined {
+export function createWorktree(
+  cwd: string,
+  agentId: string,
+  branchPrefix = DEFAULT_WORKTREE_BRANCH_PREFIX,
+): WorktreeInfo | undefined {
   // Verify we're in a git repo with at least one commit (HEAD must exist)
   let baseSha: string;
   let subdir: string;
@@ -62,7 +73,7 @@ export function createWorktree(cwd: string, agentId: string): WorktreeInfo | und
     return undefined;
   }
 
-  const branch = `pi-agent-${agentId}`;
+  const branch = `${branchPrefix}-${agentId}`;
   const suffix = randomUUID().slice(0, 8);
   const worktreePath = join(tmpdir(), `pi-agent-${agentId}-${suffix}`);
 
