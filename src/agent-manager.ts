@@ -129,6 +129,7 @@ export class AgentManager {
   private onCompact?: OnAgentCompact;
   private maxConcurrent: number;
   private worktreeBranchPrefix = DEFAULT_WORKTREE_BRANCH_PREFIX;
+  private worktreeCommitNoVerify = true;
   /** Base repos worktrees were created from — so dispose() can prune them all,
    *  not just the parent repo (caller-supplied cwd can target other repos). */
   private worktreeRepos = new Set<string>();
@@ -170,6 +171,14 @@ export class AgentManager {
 
   getWorktreeBranchPrefix(): string {
     return this.worktreeBranchPrefix;
+  }
+
+  setWorktreeCommitNoVerify(enabled: boolean): void {
+    this.worktreeCommitNoVerify = enabled;
+  }
+
+  getWorktreeCommitNoVerify(): boolean {
+    return this.worktreeCommitNoVerify;
   }
 
   /**
@@ -359,9 +368,16 @@ export class AgentManager {
 
         // Clean up worktree if used
         if (record.worktree) {
-          const wtResult = cleanupWorktree(baseCwd, record.worktree, options.description);
+          const wtResult = cleanupWorktree(
+            baseCwd,
+            record.worktree,
+            options.description,
+            this.worktreeCommitNoVerify,
+          );
           record.worktreeResult = wtResult;
-          if (wtResult.hasChanges && wtResult.branch) {
+          if (wtResult.error) {
+            record.result = `${record.result ?? ""}\n\n---\n${wtResult.error}`;
+          } else if (wtResult.hasChanges && wtResult.branch) {
             // With a caller-supplied cwd the branch lives in THAT repo, not the
             // parent session's — say so, or the orchestrator merges in the wrong repo.
             const repoNote = customCwd !== undefined ? ` in \`${baseCwd}\`` : "";
@@ -403,8 +419,14 @@ export class AgentManager {
         // Best-effort worktree cleanup on error
         if (record.worktree) {
           try {
-            const wtResult = cleanupWorktree(baseCwd, record.worktree, options.description);
+            const wtResult = cleanupWorktree(
+              baseCwd,
+              record.worktree,
+              options.description,
+              this.worktreeCommitNoVerify,
+            );
             record.worktreeResult = wtResult;
+            if (wtResult.error) record.error = `${record.error}\n${wtResult.error}`;
           } catch { /* ignore cleanup errors */ }
         }
 

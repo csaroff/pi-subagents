@@ -108,6 +108,8 @@ export interface SubagentsSettings {
    * Defaults to `"pi-agent"`; the agent id is appended as `-<agentId>`.
    */
   worktreeBranchPrefix?: string;
+  /** Whether fallback worktree commits pass `--no-verify`. Defaults to true. */
+  worktreeCommitNoVerify?: boolean;
   /**
    * Agent type substituted when a caller-supplied `subagent_type` doesn't
    * resolve to exactly one enabled agent (unknown, disabled, or ambiguous by
@@ -142,6 +144,7 @@ export interface SettingsAppliers {
   setOutputTranscript: (b: boolean) => void;
   setMaxSubagentDepth: (n: number) => void;
   setWorktreeBranchPrefix: (prefix: string) => void;
+  setWorktreeCommitNoVerify: (enabled: boolean) => void;
   setFallbackSubagent: (v: string | undefined) => void;
 }
 
@@ -221,6 +224,7 @@ function sanitize(raw: unknown): SubagentsSettings {
     const prefix = r.worktreeBranchPrefix.trim();
     if (isValidWorktreeBranchPrefix(prefix)) out.worktreeBranchPrefix = prefix;
   }
+  if (typeof r.worktreeCommitNoVerify === "boolean") out.worktreeCommitNoVerify = r.worktreeCommitNoVerify;
   if (r.fallbackSubagent === false) {
     // The only non-string spelling worth accepting: a boolean would otherwise be
     // dropped, silently leaving the PERMISSIVE default in place. Every string is
@@ -286,6 +290,7 @@ export function applySettings(s: SubagentsSettings, appliers: SettingsAppliers):
   if (typeof s.graceTurns === "number") appliers.setGraceTurns(s.graceTurns);
   if (typeof s.maxSubagentDepth === "number") appliers.setMaxSubagentDepth(s.maxSubagentDepth);
   if (typeof s.worktreeBranchPrefix === "string") appliers.setWorktreeBranchPrefix(s.worktreeBranchPrefix);
+  if (typeof s.worktreeCommitNoVerify === "boolean") appliers.setWorktreeCommitNoVerify(s.worktreeCommitNoVerify);
   if (typeof s.fallbackSubagent === "string") appliers.setFallbackSubagent(s.fallbackSubagent);
   if (s.defaultJoinMode) appliers.setDefaultJoinMode(s.defaultJoinMode);
   if (typeof s.schedulingEnabled === "boolean") appliers.setSchedulingEnabled(s.schedulingEnabled);

@@ -694,6 +694,30 @@ describe("AgentManager — isolation: worktree fails loud, no silent fallback", 
     expect(createWorktree).toHaveBeenLastCalledWith("/tmp", id, "automation");
   });
 
+  it("passes the configured fallback commit hook policy to worktree cleanup", async () => {
+    const { createWorktree, cleanupWorktree } = await import("../src/worktree.js");
+    vi.mocked(createWorktree).mockReturnValueOnce({
+      path: "/wt/copy", branch: "pi-agent-agent", baseSha: "abc", workPath: "/wt/copy",
+    });
+    vi.mocked(cleanupWorktree).mockReturnValueOnce({
+      hasChanges: true,
+      path: "/wt/copy",
+      error: "Worktree fallback commit failed; changes remain at /wt/copy",
+    });
+    resolvedRun();
+
+    manager = new AgentManager();
+    manager.setWorktreeCommitNoVerify(false);
+    const id = manager.spawn(mockPi, mockCtx, "general-purpose", "test", {
+      description: "test",
+      isolation: "worktree",
+    });
+    await manager.getRecord(id)!.promise;
+
+    expect(cleanupWorktree).toHaveBeenLastCalledWith("/tmp", expect.anything(), "test", false);
+    expect(manager.getRecord(id)?.result).toContain("changes remain at /wt/copy");
+  });
+
   it("spawn() throws when createWorktree returns undefined; no orphan record left behind", async () => {
     const { createWorktree } = await import("../src/worktree.js");
     vi.mocked(createWorktree).mockReturnValueOnce(undefined);
@@ -784,7 +808,7 @@ describe("AgentManager — SpawnOptions.cwd passthrough (#96)", () => {
       mockCtx, "general-purpose", "test",
       expect.objectContaining({ cwd: "/wt/copy/packages/api", configCwd: "/tmp" }),
     );
-    expect(cleanupWorktree).toHaveBeenCalledWith("/", expect.anything(), "test");
+    expect(cleanupWorktree).toHaveBeenCalledWith("/", expect.anything(), "test", true);
   });
 
   it("plain worktree (no cwd) keeps the historical root working dir even when workPath differs", async () => {

@@ -154,6 +154,7 @@ describe("worktree", () => {
       // worktrees — without --no-verify it would abort the preservation commit.
       const hookPath = join(repoDir, ".git", "hooks", "pre-commit");
       writeFileSync(hookPath, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+      execFileSync("git", ["config", "core.hooksPath", join(repoDir, ".git", "hooks")], { cwd: repoDir });
 
       const wt = createWorktree(repoDir, "hooked-1")!;
       expect(wt).toBeDefined();
@@ -165,6 +166,25 @@ describe("worktree", () => {
 
       // Cleanup branch
       try { execFileSync("git", ["branch", "-D", result.branch!], { cwd: repoDir, stdio: "pipe" }); } catch { /* ignore */ }
+    });
+
+    it("runs hooks when requested and preserves the worktree if a hook rejects the fallback commit", () => {
+      // Repositories may require hooks by policy. A rejected preservation commit
+      // must leave the agent's files available instead of deleting its worktree.
+      const hookPath = join(repoDir, ".git", "hooks", "pre-commit");
+      writeFileSync(hookPath, "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+      execFileSync("git", ["config", "core.hooksPath", join(repoDir, ".git", "hooks")], { cwd: repoDir });
+
+      const wt = createWorktree(repoDir, "hooks-required")!;
+      writeFileSync(join(wt.path, "important.txt"), "must not be lost");
+
+      const result = cleanupWorktree(repoDir, wt, "hooks must run", false);
+      expect(result).toMatchObject({ hasChanges: true, path: wt.path });
+      expect(result.branch).toBeUndefined();
+      expect(result.error).toContain("fallback commit failed");
+      expect(existsSync(join(wt.path, "important.txt"))).toBe(true);
+
+      try { execFileSync("git", ["worktree", "remove", "--force", wt.path], { cwd: repoDir, stdio: "pipe" }); } catch { /* ignore */ }
     });
 
     it("creates branch when worktree is clean but HEAD moved", () => {

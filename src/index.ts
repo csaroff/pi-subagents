@@ -763,6 +763,7 @@ export default function (pi: ExtensionAPI) {
       setOutputTranscript: setOutputTranscriptDefault,
       setMaxSubagentDepth: setMaxSubagentDepth,
       setWorktreeBranchPrefix: (prefix) => manager.setWorktreeBranchPrefix(prefix),
+      setWorktreeCommitNoVerify: (enabled) => manager.setWorktreeCommitNoVerify(enabled),
       setFallbackSubagent: setFallbackSubagent,
     },
     (event, payload) => pi.events.emit(event, payload),
@@ -2150,6 +2151,7 @@ ${systemPrompt}
       outputTranscript: getOutputTranscriptDefault(),
       maxSubagentDepth: getMaxSubagentDepth(),
       worktreeBranchPrefix: manager.getWorktreeBranchPrefix(),
+      worktreeCommitNoVerify: manager.getWorktreeCommitNoVerify(),
       // Deliberately NOT `?? "general-purpose"`: every settings change writes the
       // whole snapshot, and materializing the implicit default would turn it into
       // explicit configuration — which then fails loudly if general-purpose later
@@ -2209,6 +2211,13 @@ ${systemPrompt}
           description: "Prefix for branches preserving isolated work (Enter to type)",
           currentValue: manager.getWorktreeBranchPrefix(),
           values: [manager.getWorktreeBranchPrefix()],
+        },
+        {
+          id: "worktreeCommitNoVerify",
+          label: "Skip worktree hooks",
+          description: "Use --no-verify for fallback commits that preserve isolated work",
+          currentValue: manager.getWorktreeCommitNoVerify() ? "enabled" : "disabled",
+          values: ["enabled", "disabled"],
         },
         {
           id: "joinMode",
@@ -2314,6 +2323,9 @@ ${systemPrompt}
           manager.setWorktreeBranchPrefix(value);
           notifyApplied(ctx, `Worktree branch prefix set to ${value}`);
         }
+      } else if (id === "worktreeCommitNoVerify") {
+        manager.setWorktreeCommitNoVerify(value === "enabled");
+        notifyApplied(ctx, `Skip worktree hooks ${value}`);
       } else if (id === "joinMode") {
         setDefaultJoinMode(value as JoinMode);
         notifyApplied(ctx, `Default join mode set to ${value}`);

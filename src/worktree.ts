@@ -42,6 +42,8 @@ export interface WorktreeCleanupResult {
   branch?: string;
   /** Worktree path if it was kept. */
   path?: string;
+  /** Why changes could not be preserved on a branch. */
+  error?: string;
 }
 
 /**
@@ -100,6 +102,7 @@ export function cleanupWorktree(
   cwd: string,
   worktree: WorktreeInfo,
   agentDescription: string,
+  commitNoVerify = true,
 ): WorktreeCleanupResult {
   if (!existsSync(worktree.path)) {
     return { hasChanges: false };
@@ -119,11 +122,20 @@ export function cleanupWorktree(
       // Truncate description for commit message (no shell sanitization needed — execFileSync uses argv)
       const safeDesc = agentDescription.slice(0, 200);
       const commitMsg = `pi-agent: ${safeDesc}`;
-      execFileSync("git", ["commit", "--no-verify", "-m", commitMsg], {
-        cwd: worktree.path,
-        stdio: "pipe",
-        timeout: 10000,
-      });
+      const commitArgs = ["commit", ...(commitNoVerify ? ["--no-verify"] : []), "-m", commitMsg];
+      try {
+        execFileSync("git", commitArgs, {
+          cwd: worktree.path,
+          stdio: "pipe",
+          timeout: 10000,
+        });
+      } catch {
+        return {
+          hasChanges: true,
+          path: worktree.path,
+          error: `Worktree fallback commit failed; changes remain at ${worktree.path}`,
+        };
+      }
     } else {
       const currentSha = execFileSync("git", ["rev-parse", "HEAD"], {
         cwd: worktree.path,

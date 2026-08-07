@@ -91,6 +91,7 @@ describe("settings persistence", () => {
       schedulingEnabled: false,
       toolDescriptionMode: "compact" as const,
       worktreeBranchPrefix: "automation",
+      worktreeCommitNoVerify: false,
     };
     saveSettings(settings, projectDir);
     expect(loadSettings(projectDir)).toEqual(settings);
@@ -231,6 +232,13 @@ describe("settings persistence", () => {
         writeProject({ worktreeBranchPrefix: invalid });
         expect(loadSettings(projectDir)).toEqual({});
       }
+    });
+
+    it("keeps only boolean worktree commit hook policy", () => {
+      writeProject({ worktreeCommitNoVerify: false });
+      expect(loadSettings(projectDir)).toEqual({ worktreeCommitNoVerify: false });
+      writeProject({ worktreeCommitNoVerify: "false" });
+      expect(loadSettings(projectDir)).toEqual({});
     });
 
     it("accepts `none` and `false` as the disabled fallback, nothing else", () => {
@@ -431,6 +439,7 @@ describe("settings persistence", () => {
         setOutputTranscript: vi.fn(),
         setMaxSubagentDepth: vi.fn(),
         setWorktreeBranchPrefix: vi.fn(),
+        setWorktreeCommitNoVerify: vi.fn(),
         setFallbackSubagent: vi.fn(),
       };
     });
@@ -455,11 +464,21 @@ describe("settings persistence", () => {
     });
 
     it("applies only the fields that are present", () => {
-      applySettings({ maxConcurrent: 4, graceTurns: 3, maxSubagentDepth: 1, worktreeBranchPrefix: "automation" }, appliers);
+      applySettings(
+        {
+          maxConcurrent: 4,
+          graceTurns: 3,
+          maxSubagentDepth: 1,
+          worktreeBranchPrefix: "automation",
+          worktreeCommitNoVerify: false,
+        },
+        appliers,
+      );
       expect(appliers.setMaxConcurrent).toHaveBeenCalledWith(4);
       expect(appliers.setGraceTurns).toHaveBeenCalledWith(3);
       expect(appliers.setMaxSubagentDepth).toHaveBeenCalledWith(1);
       expect(appliers.setWorktreeBranchPrefix).toHaveBeenCalledWith("automation");
+      expect(appliers.setWorktreeCommitNoVerify).toHaveBeenCalledWith(false);
       expect(appliers.setDefaultMaxTurns).not.toHaveBeenCalled();
       expect(appliers.setDefaultJoinMode).not.toHaveBeenCalled();
       expect(appliers.setSchedulingEnabled).not.toHaveBeenCalled();
@@ -591,6 +610,7 @@ describe("settings persistence", () => {
         setOutputTranscript: vi.fn(),
         setMaxSubagentDepth: vi.fn(),
         setWorktreeBranchPrefix: vi.fn(),
+        setWorktreeCommitNoVerify: vi.fn(),
         setFallbackSubagent: vi.fn(),
       };
     });
