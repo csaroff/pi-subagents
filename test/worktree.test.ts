@@ -49,12 +49,12 @@ describe("worktree", () => {
       try { execFileSync("git", ["worktree", "remove", "--force", wt!.path], { cwd: repoDir, stdio: "pipe" }); } catch { /* ignore */ }
     });
 
-    it("uses the configured branch prefix so isolated work can follow repository naming policy", () => {
+    it("uses the configured prefix for both directory and branch naming policy", () => {
       const wt = createWorktree(repoDir, "custom-prefix", "automation");
       expect(wt?.branch).toBe("automation-custom-prefix");
 
-      // The prefix controls the preserved branch only; temp paths remain recognizable and disposable.
-      expect(wt?.path).toContain("pi-agent-custom-prefix-");
+      // Repository policy applies consistently to both the preserved branch and temporary worktree name.
+      expect(wt?.path).toContain("automation-custom-prefix-");
       try { execFileSync("git", ["worktree", "remove", "--force", wt!.path], { cwd: repoDir, stdio: "pipe" }); } catch { /* ignore */ }
     });
 

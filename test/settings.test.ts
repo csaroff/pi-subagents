@@ -224,7 +224,7 @@ describe("settings persistence", () => {
       expect(loadSettings(projectDir)).toEqual({});
     });
 
-    it("keeps a safe worktree branch prefix and drops invalid Git ref fragments", () => {
+    it("keeps a safe worktree prefix and drops invalid Git or path fragments", () => {
       writeProject({ worktreeBranchPrefix: "  automation.agents_1  " });
       expect(loadSettings(projectDir)).toEqual({ worktreeBranchPrefix: "automation.agents_1" });
 

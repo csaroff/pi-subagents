@@ -77,7 +77,7 @@ export function createWorktree(
 
   const branch = `${branchPrefix}-${agentId}`;
   const suffix = randomUUID().slice(0, 8);
-  const worktreePath = join(tmpdir(), `pi-agent-${agentId}-${suffix}`);
+  const worktreePath = join(tmpdir(), `${branchPrefix}-${agentId}-${suffix}`);
 
   try {
     // Create detached worktree at HEAD

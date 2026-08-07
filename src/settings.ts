@@ -104,7 +104,7 @@ export interface SubagentsSettings {
    */
   maxSubagentDepth?: number;
   /**
-   * Prefix for branches preserving changes from `isolation: "worktree"` runs.
+   * Prefix for directories and branches created by `isolation: "worktree"` runs.
    * Defaults to `"pi-agent"`; the agent id is appended as `-<agentId>`.
    */
   worktreeBranchPrefix?: string;

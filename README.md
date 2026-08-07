@@ -420,16 +420,16 @@ When on, each subagent spawn's effective model is validated against pi's own `en
 
 ## Persistent Settings
 
-Runtime tuning values set via `/agents` → Settings (max concurrency, default max turns, grace turns, nested depth, worktree branch prefix and commit hooks, fallback agent, default join mode, scheduling on/off, scope models on/off, disable defaults on/off, output transcript on/off, tool description full/compact/custom, widget all/background/off) persist across pi restarts. Two files, merged on load:
+Runtime tuning values set via `/agents` → Settings (max concurrency, default max turns, grace turns, nested depth, worktree prefix and commit hooks, fallback agent, default join mode, scheduling on/off, scope models on/off, disable defaults on/off, output transcript on/off, tool description full/compact/custom, widget all/background/off) persist across pi restarts. Two files, merged on load:
 
 - **Global:** `~/.pi/agent/subagents.json` — your machine-wide defaults. Edit by hand; the `/agents` menu never writes here.
 - **Project:** `<cwd>/.pi/subagents.json` — per-project overrides. Written by `/agents` → Settings.
 
-**Precedence:** project overrides global on any field present in both. Missing fields fall back to the hardcoded defaults (max concurrency `4`, default max turns unlimited, grace turns `5`, nested depth `2`, worktree branch prefix `pi-agent`, worktree hooks skipped, join mode `smart`, defaults enabled).
+**Precedence:** project overrides global on any field present in both. Missing fields fall back to the hardcoded defaults (max concurrency `4`, default max turns unlimited, grace turns `5`, nested depth `2`, worktree prefix `pi-agent`, worktree hooks skipped, join mode `smart`, defaults enabled).
 
 **Nested depth** (`maxSubagentDepth`, default `2`): the hard ceiling on [nested delegation](#nested-subagents), counted from the main session (main = 0, its subagents = 1). `0` or `1` disables nesting project-wide regardless of any agent's `allowed_subagents`. Read when a subagent session is built, so a change applies to agents started after it.
 
-**Worktree branch prefix** (`worktreeBranchPrefix`, default `"pi-agent"`): the prefix used when `isolation: "worktree"` preserves an agent's changes as `<prefix>-<agentId>`. Set it via `/agents → Settings → Worktree branch prefix` or `subagents.json`, for example `"worktreeBranchPrefix": "automation"`. The value applies live to worktrees created after the change and accepts letters, numbers, `.`, `_`, and `-` (maximum 100 characters; it must start with a letter or number and cannot contain `..`). Temporary worktree directory names stay `pi-agent-*` so they remain recognizable and disposable.
+**Worktree prefix** (`worktreeBranchPrefix`, default `"pi-agent"`): the prefix used for both the temporary worktree directory `<prefix>-<agentId>-<suffix>` and the branch `<prefix>-<agentId>` that preserves its changes. Set it via `/agents → Settings → Worktree prefix` or `subagents.json`, for example `"worktreeBranchPrefix": "automation"`. The value applies live to worktrees created after the change and accepts letters, numbers, `.`, `_`, and `-` (maximum 100 characters; it must start with a letter or number and cannot contain `..`).
 
 **Worktree commit hooks** (`worktreeCommitNoVerify`, default `true`): fallback commits that preserve uncommitted work pass `--no-verify` by default, retaining the existing behavior. Set this to `false`, or disable `/agents → Settings → Skip worktree hooks`, to run repository pre-commit and commit-msg hooks. If a hook rejects the commit, the worktree is kept and its path is reported; changes are never discarded.
 

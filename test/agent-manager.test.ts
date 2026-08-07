@@ -676,7 +676,7 @@ describe("AgentManager — isolation: worktree fails loud, no silent fallback", 
     manager?.dispose();
   });
 
-  it("passes the configured branch prefix to every isolated worktree", async () => {
+  it("passes the configured prefix to every isolated worktree", async () => {
     const { createWorktree } = await import("../src/worktree.js");
     vi.mocked(createWorktree).mockReturnValueOnce({
       path: "/wt/copy", branch: "automation-agent", baseSha: "abc", workPath: "/wt/copy",

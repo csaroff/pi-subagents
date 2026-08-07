@@ -2207,8 +2207,8 @@ ${systemPrompt}
         },
         {
           id: "worktreeBranchPrefix",
-          label: "Worktree branch prefix",
-          description: "Prefix for branches preserving isolated work (Enter to type)",
+          label: "Worktree prefix",
+          description: "Prefix for isolated worktree directories and branches (Enter to type)",
           currentValue: manager.getWorktreeBranchPrefix(),
           values: [manager.getWorktreeBranchPrefix()],
         },
@@ -2321,7 +2321,7 @@ ${systemPrompt}
       } else if (id === "worktreeBranchPrefix") {
         if (isValidWorktreeBranchPrefix(value)) {
           manager.setWorktreeBranchPrefix(value);
-          notifyApplied(ctx, `Worktree branch prefix set to ${value}`);
+          notifyApplied(ctx, `Worktree prefix set to ${value}`);
         }
       } else if (id === "worktreeCommitNoVerify") {
         manager.setWorktreeCommitNoVerify(value === "enabled");
@@ -2422,7 +2422,7 @@ ${systemPrompt}
     });
 
     if (result === "worktreeBranchPrefix") {
-      let input: string | undefined = await ctx.ui.input("Worktree branch prefix", manager.getWorktreeBranchPrefix());
+      let input: string | undefined = await ctx.ui.input("Worktree prefix", manager.getWorktreeBranchPrefix());
       while (input != null) {
         const trimmed = input.trim();
         if (isValidWorktreeBranchPrefix(trimmed)) {
@@ -2430,7 +2430,7 @@ ${systemPrompt}
           await showSettings(ctx);
           return;
         }
-        input = await ctx.ui.input("Worktree branch prefix (letters, numbers, ., _, -)", trimmed);
+        input = await ctx.ui.input("Worktree prefix (letters, numbers, ., _, -)", trimmed);
       }
     }
 
