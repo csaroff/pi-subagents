@@ -58,6 +58,8 @@ Agent({
 })
 ```
 
+Set `inherit_context: true` when the sub-agent needs the parent conversation.
+
 Foreground agents block until complete and return results inline. Background agents return an ID immediately and notify you on completion.
 
 ### Scheduling
